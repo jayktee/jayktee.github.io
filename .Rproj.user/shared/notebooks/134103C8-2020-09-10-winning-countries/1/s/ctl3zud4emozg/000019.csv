@@ -1,0 +1,7 @@
+"0",""
+"0","covidconfirmedlong <- "
+"0","  covidconfirmedlong %>% "
+"0","  janitor::clean_names() %>% "
+"0","  mutate(date = mdy(date))  # Convert date from character to date"
+"0",""
+"0","covidconfirmedlong"

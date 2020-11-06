@@ -1,0 +1,106 @@
+---
+title: "EDA Party Switching (GE12-14) -- Legislators"
+author: "Joyce Tagal"
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+
+# Parameters
+
+legislators_file <- "/Users/joycetagal/Google Drive (jtagal@stanford.edu)/Thesis/Data/Legislators/legislators_out.csv"
+
+#===============================================================================
+
+
+```
+
+
+```{r}
+
+legislators <- 
+  read_csv(legislators_file)
+
+```
+
+```{r}
+
+legislators %>% 
+  filter(year == "2018") %>% 
+  distinct(constituency)
+
+legislators %>% 
+  group_by(winner, comp_party) %>% 
+  count() %>% 
+  arrange(winner)
+
+legislators %>% 
+  group_by(winner, comp_party) %>% 
+  count() %>% 
+  arrange(-n)
+
+
+legislators %>% 
+  group_by(winner, comp_party) %>% 
+  count() %>% 
+  nest(data = c(comp_party, n)) %>% 
+  mutate(sum_party = map_int(data, ~ n_distinct(.$comp_party, na.rm = TRUE))) %>% 
+  arrange(-sum_party) %>% 
+  unnest(data) %>% 
+  rename(num_elections = n) %>% 
+  filter(sum_party > 1) %>% 
+  write_csv("/Users/joycetagal/Google Drive (jtagal@stanford.edu)/Thesis/Data/switchers.csv")
+
+legislators %>% 
+  filter(str_detect(winner, "ZAINAL ABIDIN AHMAD"))
+
+```
+```{r}
+
+switchers <- 
+  legislators %>% 
+  group_by(winner, comp_party) %>% 
+  count() %>% 
+  nest(data = c(comp_party, n)) %>% 
+  mutate(sum_party = map_int(data, ~ n_distinct(.$comp_party, na.rm = TRUE))) %>% 
+  arrange(-sum_party) %>% 
+  unnest(data) %>% 
+  rename(num_elections = n) %>% 
+  filter(sum_party > 1)
+
+switchers <- 
+  switchers %>% 
+  group_by(winner) %>% 
+  summarize(parties = paste(comp_party, collapse = ", ")) %>% 
+  separate(parties, into = c("party_1", "party_2"))
+
+library(googlesheets4)
+
+
+read_sheet("1ur15Y3CMPYtNyXlJcE_seklbr8NQcJsX2Qd4IitLmy4") %>% 
+  select()
+  
+```
+
+
+```{r}
+
+switchers %>% 
+  left_join(
+    legislators %>% 
+      select(year, winner, comp_party),
+    by = c("winner" = "winner", "comp_party" = "comp_party")
+  ) %>% 
+  arrange(winner) %>% 
+  write_csv("/Users/joycetagal/Google Drive (jtagal@stanford.edu)/Thesis/Data/switchers_year.csv")
+
+```

@@ -1,0 +1,29 @@
+"0",""
+"0","oxford <- "
+"0","  read_csv(oxfordlink) %>% "
+"0","  rename_all(~str_to_lower(.)) %>% "
+"0","  mutate(date = as_date(as.character(date))) "
+"2","
+[36m──[39m [1m[1mColumn specification[1m[22m [36m─────────────────────────────────────────────────────────────────────────────[39m
+cols(
+  .default = col_double(),
+  CountryName = [31mcol_character()[39m,
+  CountryCode = [31mcol_character()[39m,
+  RegionName = [33mcol_logical()[39m,
+  RegionCode = [33mcol_logical()[39m,
+  M1_Wildcard = [33mcol_logical()[39m
+)
+[36mℹ[39m Use [38;5;251m[48;5;235m[38;5;251m[48;5;235m`spec()`[48;5;235m[38;5;251m[49m[39m for the full column specifications.
+
+"
+"2","34832 parsing failures.
+  row        col           expected  actual                                                                                          file
+19594 RegionName 1/0/T/F/TRUE/FALSE England 'https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv'
+19594 RegionCode 1/0/T/F/TRUE/FALSE UK_ENG  'https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv'
+19595 RegionName 1/0/T/F/TRUE/FALSE England 'https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv'
+19595 RegionCode 1/0/T/F/TRUE/FALSE UK_ENG  'https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv'
+19596 RegionName 1/0/T/F/TRUE/FALSE England 'https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv'
+..... .......... .................. ....... .............................................................................................
+See problems(...) for more details.
+"
+"0","oxford "

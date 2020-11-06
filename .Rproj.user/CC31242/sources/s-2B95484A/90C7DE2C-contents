@@ -1,0 +1,422 @@
+---
+title: "Which countries have 'won' at Covid-19?"
+author: Joyce Tagal
+date: '2020-09-10'
+slug: winning-countries
+image: "images/nytimes.png"
+categories: ["dataviz"]
+tags: ["covid", "dataviz", "r", "tidyverse"]
+description: "Creating 7-day rolling averages with RcppRoll."
+keywords: ["coronavirus", "covid", "curve", "flatten", "dataviz", "tidyverse"]
+output: 
+  blogdown::html_page:
+    toc: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Winning Curves
+
+A long, long time ago in a era long ago -- a WHOLE FIVE MONTHS ago -- 
+there was a lot of talk about "flattening the curve" for COVID-19, 
+namely, the number of new cases that were recorded per day. You probably 
+remember this because across social media, folks were posting images of each 
+country's curve, complete with detailed commentary and growing panic. Ah, what
+innocent times!
+
+For example, in mid March, the NYTimes published 
+an [interactive article](https://www.nytimes.com/interactive/2020/03/19/world/coronavirus-flatten-the-curve-countries.html) showing where several countries were on their respective curves. 
+
+![Look at those curves!](/posts/2020-09-10-winning-countries_files/test.png)
+
+This curve imagery was definitely one of the defining data visualizations of 
+the beginning of the COVID-19 pandemic.
+
+In this post, I'm going to show you how to create this iconic curve imagery for
+the country/ies of your choice using raw data from the Johns Hopkins 
+University COVID-19 tracking [Github repo](https://github.com/CSSEGISandData/COVID-19). 
+
+# Setting things up
+
+Let's get to it!
+
+## Call your packages
+
+For this curve, epidemiologists and journalists typically use a rolling 7-day average,
+to prevent any weird spikes in the data - for example, a spike in reporting
+after a 3-day weekend. To replicate the 7-day moving average, 
+we will be using the R library **RcppRoll** which you can install in Rstudio
+with the command line:
+
+```{r eval=FALSE}
+install.packages("RcppRoll")
+```
+
+Read more about the **RcppRoll** library [here](https://github.com/kevinushey/RcppRoll).
+
+First let's call our packages. Once you've installed **RcppRoll** you can call it.
+We will also be calling the **tidyverse** package as default and the 
+**lubridate** package to deal with date-times.
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+library(lubridate)
+library(RcppRoll)
+
+```
+
+## Get that data
+
+Now, for the data. Here, I'll be calling the raw CSV (comma separated values) 
+from the Johns Hopkins GitHub repo. 
+
+JHU tracks several types of COVID-19 data globally. The data is divided into
+daily reports and a time series, which is a large dataset with daily reported
+COVID-19 cases for multiple countries, reported over multiple days.
+
+![Screenshot of JHU Repo](/posts/2020-09-10-winning-countries_files/jhurepo.png)
+
+I specifically want the global time series data for daily reported confirmed cases, 
+although you could also choose to download daily reports or a time series for 
+U.S. counties for confirmed cases, deaths and recoveries.
+
+(Remember, you want the *raw* data, so you're selecting "time_series_covid19_confirmed_global.csv" and then clicking on "Raw" on the 
+top right hand corner of the Github page. You'll see what looks like a ton
+of messy text, separated by commas - that's the CSV. Copying and pasting 
+the URL below gives us this link.)
+
+```{r message=FALSE, warning=FALSE}
+# CSV link
+jhulink <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
+```
+
+Great, let's feed the link into a tibble.
+
+```{r message=FALSE, warning=FALSE}
+
+# Reading in to a tibble
+covidconfirmed <- 
+  read_csv(jhulink)
+
+```
+
+Let's take a brief look at the data to see what it's like.
+
+```{r}
+
+covidconfirmed %>% 
+  head(10) 
+
+```
+
+Ok so we can see here that there's a bunch of countries in the country/region
+column, and over 200 dates of tracking, starting on the 22nd of January.
+
+We can also see that for some countries, like Australia, JHU tracked cases for
+regions, states, or counties within the country.
+
+## Tidying the data
+
+Let's tidy the data, i.e., make sure that each row only holds a single 
+observation.
+
+First, let's get the dates into a single column using `pivot_longer`. 
+
+```{r}
+
+covidconfirmedlong <- 
+  covidconfirmed %>%
+  pivot_longer(
+    cols = matches("[0-9]"),
+    names_to = "date",
+    values_to = "cases"
+  )
+
+covidconfirmedlong
+
+```
+
+The inconsistent headers are stressing me out, so let's fix that too.
+
+I'll also convert the `date` column from string to date format using lubridate.
+
+```{r}
+
+covidconfirmedlong <- 
+  covidconfirmedlong %>% 
+  janitor::clean_names() %>% 
+  mutate(date = mdy(date))  # Convert date from character to date
+
+covidconfirmedlong
+
+```
+
+Much better! Now we have only 6 variables which makes wrangling a lot easier.
+
+Lets now do the following things, which you can see in the code.
+
+* Filter out any provincial or regional observations
+* Set a day-zero minimum date for each country, based on when the country reached
+10 cases. This is necessary to remove any long left tails of the distribution
+where the cases are just zero, and also sets a standardized starting point 
+across all countries.
+
+Note that the JHU dataset does not have country-only observations for China,
+Canada and Australia (or the U.S, which is tracked in a different file on their
+repo). Instead, you have to sum up the regional/state observations for all
+the separate countries. Because of this, I'll first sum up the countries with
+no regional breakdowns, then will create a summed dataset for China, Canada and 
+Australia, and then bind the two datasets together.
+
+
+```{r}
+
+# Countries with no regional breakdown
+covidconfirmedlong_1 <- 
+  covidconfirmedlong %>% 
+  filter(is.na(province_state)) %>% # Filtering for only country-wide observations
+  select(-province_state) %>% # Drop the now-empty column
+  filter(cases >= 10)
+
+covidconfirmedlong_1
+
+```
+
+
+```{r}
+
+# Countries with regional breakdown
+
+covidconfirmedlong_2 <- 
+  covidconfirmedlong %>% 
+  filter(country_region %in% c("Canada", "China", "Australia")) %>% 
+  group_by(country_region, date) %>% 
+  summarize(
+    cases = sum(cases, na.rm = TRUE)
+  ) %>% 
+  filter(cases >= 10) 
+
+covidconfirmedlong_2
+
+```
+
+```{r}
+
+covidconfirmedlong <- 
+  bind_rows(
+    covidconfirmedlong_1 %>% select(-lat, -long),
+    covidconfirmedlong_2
+  )
+
+# Let's check that those countries are in there
+
+covidconfirmedlong %>% 
+  filter(country_region %in% c("Australia", "Canada", "China"))
+
+```
+
+Cool, looks good!
+
+## Rolling mean of cases
+
+In the next step, we do two things.
+
+First, I'm creating an additional column for each country which has two 
+constants: the first date of when the pandemic hits at least 10 cases in the 
+country, and the maximum date of the time period we are trying to map. 
+I choose an arbitrary time period of 150 days after the first day for each
+country - you can adjust the time period constant if you want a longer
+representation.  This is because we are trying to standardize the time period 
+across the countries for a more accurate representation. 
+
+I do this by joining the dataset back to itself, after calculating the first
+date for the country and the max date of the time period. I will then
+keep only dates which fall into the 150 day time period.
+
+I rename the new dataset as `covidconfirmeddates`. 
+
+```{r}
+
+TIMEPERIOD = 150
+
+covidconfirmeddates <- 
+  covidconfirmedlong %>% 
+  select(country_region, date, cases) %>% 
+  left_join(
+    covidconfirmedlong %>% 
+      group_by(country_region) %>% 
+      mutate(
+        firstdate = min(date), 
+        maxdate = firstdate + TIMEPERIOD
+      ) %>% 
+      select(country_region, firstdate, maxdate) %>% 
+      slice_head(n = 1),
+    by = c("country_region" = "country_region")
+  ) %>% 
+  filter(date <= maxdate)
+  
+covidconfirmeddates
+
+```
+
+Now, I can more easily wrangle the dates as a relative number from the first date.
+
+I then use the **RcppRoll** `roll_mean` function to create a 7 day rolling
+average for the case numbers. As I mentioned in the beginning of the post,
+this is to ensure that the average isn't messed up by reporting pauses or
+errors.
+
+Also, note that the cases column in the dataset is made up of cumulative
+cases, i.e. the total of cases reported. Therefore, to get the number of
+cases reported for a given day, we must first subtract that day's cumulative
+cases from the previous day's cases (shown here in `reporteddailycases`).
+
+
+```{r}
+
+covidconfirmeddates <- 
+  covidconfirmeddates %>% 
+  group_by(country_region) %>% 
+  mutate(
+    days = date - firstdate, # Days from day zero
+    reporteddailycases = cases - lag(cases), # Subtract cases from previous day
+    meanreportedcases = 
+      RcppRoll::roll_mean( # Using RcppRoll here for rolling means
+        reporteddailycases, n = 7, fill = NA, align = "right", na.rm = TRUE
+      )
+  )
+
+covidconfirmeddates
+
+```
+
+Looking great.
+
+## Visualizing Rolling Means!
+
+Ok, now for the fun part -- the visualization! I've selected an arbitrary
+group of countries below, and will keep only these countries in my dataset
+for visualization.
+
+```{r}
+
+selected_countries <- c(
+  "China",
+  "United Kingdom",
+  "Korea, South",
+  "France",
+  "Italy",
+  "Malaysia", # Malaysia represent!,
+  "Vietnam"
+)
+
+covidconfirmeddates %>% 
+  filter(country_region %in% selected_countries) %>% 
+  ggplot(aes(x = days, y = meanreportedcases, group = country_region)) + 
+  geom_line(aes(color = country_region)) +
+  scale_x_continuous() +
+  labs(
+    y = "Daily Reported Cases",
+    x = "Days from 10th confirmed case",
+    caption = str_glue("Source: JHU CSSE Global Time Series. Data from {format(Sys.Date(), '%d %b, %Y')}"
+    ),
+    title = "Rolling 7-day means of COVID-19 confirmed cases",
+    subtitle = "Data for selected countries",
+    color = "Countries"
+  ) +
+  theme(
+    plot.caption = element_text(hjust = 0)
+  )
+
+```
+
+Looking at the viz you can see how quickly each country "dealt" with the 
+first wave of COVID-19 cases. Some interesting observations.. can you think
+of the reasons why?
+
+* China managed to get its daily reported case count back to zero within 50 days
+* All the European countries took a much longer time to respond, compared to the
+Asian countries in this sample.
+* France has the highest daily cases count within this group of countries which
+is surprising given France's population (~67M) vs China's population (~1.4B).
+* South Korea (pop. ~51M) never broke the 1000/day case count, mostly through 
+very comprehensive, tech-enabled testing, implementing  quick lockdowns for 
+places of worship and delaying the start of the school term. Great post on 
+South Korea's response [here](https://ourworldindata.org/covid-exemplar-south-korea).
+* Malaysia's case count stayed very low, barely breaking a few hundred cases/day.
+That's partly due to Malaysia's relatively small population (~29M), but also
+due to some very stringent lockdowns.
+* The real success case here is clearly Vietnam, with a population of ~96M which
+never went above several dozens of cases. Post about Vietnam's response [here](https://ourworldindata.org/covid-exemplar-vietnam).
+
+# Let's talk about Media Bias
+
+For someone who is from Southeast Asia and saw so much success in our Asian
+counterparts, I found it really hard to understand why the U.S. (which, by the 
+way, had so many cases that we literally could not chart it on this same axis
+without breaking the chart) only looked to other Western European countries 
+like Germany that had pretty bad response times as well. 
+
+The Western media also did the same thing - completely ignoring the Asian and 
+African countries that had done super well in favor of praising New Zealand, which, 
+with a population of ~5M really could not be considered a good peer country for other,
+much larger Western countries. 
+
+```{r}
+
+selected_countries <- c(
+  "China",
+  "Korea, South",
+  "New Zealand",
+  "Malaysia", # Malaysia represent!,
+  "Vietnam",
+  "Germany"
+)
+
+covidconfirmeddates %>% 
+  filter(country_region %in% selected_countries) %>% 
+  ggplot(aes(x = days, y = meanreportedcases, group = country_region)) + 
+  geom_line(aes(color = country_region)) +
+  scale_x_continuous() +
+  labs(
+    y = "Daily Reported Cases",
+    x = "Days from 10th confirmed case",
+    caption = str_glue("Source: JHU CSSE Global Time Series. Data from {format(Sys.Date(), '%d %b, %Y')}"
+    ),
+    title = "Rolling 7-day means of COVID-19 confirmed cases",
+    subtitle = "Data for selected countries",
+    color = "Countries"
+  ) +
+  theme(
+    plot.caption = element_text(hjust = 0)
+  )
+
+```
+
+Look, New Zealand looks great on this chart (and it's an amazing country) but 
+you can't compare an island with a population of 5M to countries that are many 
+times larger.
+
+And Germany (pop. ~83M) looks terrible compared to the Asian countries here
+that have roughly the same population size!
+
+Here's one great Medium [post](https://medium.com/indica/in-the-nytimes-only-white-leaders-stand-out-3e2c175245f8) that discusses this media bias - very entertaining.
+
+# Conclusion
+
+So, who's winning? 
+
+Based on just the first 150 days, it's clear that the Asian countries that I 
+looked at were much more effective at locking down the country and halting the
+meteoric rise of COVID-19 cases. Definitely winning!
+
+I'd love to see you use this code to examine other countries using these
+datasets. Feel free to tweet me [\@joycektagal](https://twitter.com/joycektagal)
+and let me know what interesting things you've found!
+
+Happy visualizing!
+

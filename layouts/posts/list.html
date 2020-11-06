@@ -1,0 +1,19 @@
+{{ partial "header.html" . }}
+
+{{ $dateFormat := .Site.Params.dateFormat | default "Jan 2, 2006" }}
+
+<section id=content>
+  <ul class=posts_listing>
+    {{ range .Data.Pages.ByDate.Reverse }}
+      <li>
+        <h2><a href="{{ .Permalink }}">{{ .Title }}</a></h2>
+        <div id=date>
+          <time>{{ .Date.Format $dateFormat }}</time>
+        </div>
+        {{ .Description }}
+      </li>
+    {{ end }}
+  </ul>
+</section>
+
+{{ partial "footer.html" . }}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>covid on Joyce Tagal</title>
+    <link>https://joycetagal.me/tags/covid/</link>
+    <description>Recent content in covid on Joyce Tagal</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Thu, 10 Sep 2020 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="https://joycetagal.me/tags/covid/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Which countries have &#39;won&#39; at Covid-19?</title>
+      <link>https://joycetagal.me/posts/winning-countries/</link>
+      <pubDate>Thu, 10 Sep 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://joycetagal.me/posts/winning-countries/</guid>
+      <description>1 Winning Curves 2 Setting things up  2.1 Call your packages 2.2 Get that data 2.3 Tidying the data 2.4 Rolling mean of cases 2.5 Visualizing Rolling Means!  3 Let’s talk about Media Bias 4 Conclusion   1 Winning Curves A long, long time ago in a era long ago – a WHOLE FIVE MONTHS ago – there was a lot of talk about “flattening the curve” for COVID-19, namely, the number of new cases that were recorded per day.</description>
+    </item>
+    
+  </channel>
+</rss>
