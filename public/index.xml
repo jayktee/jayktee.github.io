@@ -12,15 +12,6 @@
     
     
     <item>
-      <title>mobility-covid</title>
-      <link>https://joycetagal.me/posts/mobility-covid/</link>
-      <pubDate>Thu, 10 Sep 2020 00:00:00 +0000</pubDate>
-      
-      <guid>https://joycetagal.me/posts/mobility-covid/</guid>
-      <description>   # Libraries library(tidyverse) library(lubridate) library(RcppRoll)  </description>
-    </item>
-    
-    <item>
       <title>Which countries have &#39;won&#39; at Covid-19?</title>
       <link>https://joycetagal.me/posts/winning-countries/</link>
       <pubDate>Thu, 10 Sep 2020 00:00:00 +0000</pubDate>

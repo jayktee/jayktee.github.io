@@ -3,6 +3,7 @@ title: mobility-covid
 author: Joyce Tagal
 date: '2020-09-10'
 slug: mobility-covid
+draft: true
 categories: []
 tags: []
 description: ''
