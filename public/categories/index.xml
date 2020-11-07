@@ -2,21 +2,21 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Categories on Joyce Tagal</title>
-    <link>https://joycetagal.me/categories/</link>
+    <link>/categories/</link>
     <description>Recent content in Categories on Joyce Tagal</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <lastBuildDate>Thu, 10 Sep 2020 00:00:00 +0000</lastBuildDate>
     
-	<atom:link href="https://joycetagal.me/categories/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="/categories/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>dataviz</title>
-      <link>https://joycetagal.me/categories/dataviz/</link>
+      <link>/categories/dataviz/</link>
       <pubDate>Thu, 10 Sep 2020 00:00:00 +0000</pubDate>
       
-      <guid>https://joycetagal.me/categories/dataviz/</guid>
+      <guid>/categories/dataviz/</guid>
       <description></description>
     </item>
     
